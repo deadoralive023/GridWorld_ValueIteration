@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import MDPSolver as mdpSolver
 import os
 
 LEFT = 0
@@ -13,6 +14,9 @@ AGENT_STATE = 8
 DEFAULT_STATE = 0
 TERMINAL_STATES = [3, 7]
 UNREACHABLE_STATES = [5]
+
+
+
 
 
 class GridWorld:
@@ -35,9 +39,13 @@ class GridWorld:
         return state_space
 
     def create_reward_vec(self):
-        reward_vec = np.zeros([self.rows * self.cols])
-        reward_vec[3] = 1
-        reward_vec[7] = -1
+        reward_vec = np.zeros((self.rows * self.cols, len(self.A)))
+        for t_state in TERMINAL_STATES:
+            reward_vec[t_state][LEFT] = -2
+            reward_vec[t_state][UP] = -2
+            reward_vec[t_state][DOWN] = -2
+        reward_vec[3][RIGHT] = 1
+        reward_vec[7][RIGHT] = -1
         return reward_vec
 
     def create_transition_probabilities(self):
@@ -47,6 +55,9 @@ class GridWorld:
                 T[action][state][self.next_state(state, action)] += 0.8
                 T[action][state][self.next_state(state, self.set_action_val(action - 1))] += 0.1
                 T[action][state][self.next_state(state, self.set_action_val(action + 1))] += 0.1
+        for state in TERMINAL_STATES:
+            for action in self.A:
+                T[action][state] = 0
         return T
 
     def next_state(self, state, action):
@@ -88,6 +99,16 @@ class GridWorld:
             new_action = 3
         return new_action
 
+    def get_action_str(self, act):
+        if act == LEFT:
+            return 'L'
+        if act == UP:
+            return 'U'
+        if act == RIGHT:
+            return 'R'
+        if act == DOWN:
+            return 'D'
+
     def get_index(self, state):
         x = state % self.cols
         y = math.floor(state / self.cols)
@@ -104,13 +125,10 @@ class GridWorld:
                 print("|\n-----------------")
 
 
-
-
-
 env = GridWorld()
-for i in range(0, 100):
-    env.print()
-    action = int(input())
-    env, r, done = env.step(action)
-    print(env)
 env.print()
+
+solver = mdpSolver.MDPSolver(env)
+solver.value_iteration()
+solver.print_policy()
+
